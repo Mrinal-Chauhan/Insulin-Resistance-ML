@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Insulin Resistance Predictor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+<!-- ── NAVBAR ── -->
+<nav class="navbar" id="navbar">
+  <div class="nav-inner">
+    <a class="nav-brand" href="#">
+      <span class="nav-dot" id="statusDot"></span>
+      IR_PREDICT
+    </a>
+    <ul class="nav-links">
+      <li><a href="#overview"   class="nav-link active">Overview</a></li>
+      <li><a href="#data"       class="nav-link">Data</a></li>
+      <li><a href="#pipeline"   class="nav-link">Pipeline</a></li>
+      <li><a href="#charts"     class="nav-link">Charts</a></li>
+      <li><a href="#code"       class="nav-link">Code</a></li>
+      <li><a href="#predict"    class="nav-link">Predict</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- ── HERO ── -->
+<section class="hero" id="overview">
+  <div class="hero-grid-bg"></div>
+  <div class="hero-content container">
+    <div class="section-tag">ML PROJECT / CSE-2</div>
+    <h1 class="hero-title">Insulin<br>Resistance<br>Prediction</h1>
+    <p class="hero-sub">
+      XGBoost classifier trained on 190,000 patient records from 20 countries.
+      Grid-searched hyperparameters, SMOTE balancing, and StandardScaler preprocessing.
+    </p>
+    <div class="hero-stats">
+      <div class="stat-card">
+        <div class="stat-num">80.7%</div>
+        <div class="stat-label">Accuracy</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">86.9%</div>
+        <div class="stat-label">ROC-AUC</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">190K</div>
+        <div class="stat-label">Samples</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">10</div>
+        <div class="stat-label">Features</div>
+      </div>
+    </div>
+    <div class="hero-cta">
+      <a href="#predict" class="btn-primary">Run Prediction</a>
+      <a href="#charts"  class="btn-secondary">View Charts</a>
+    </div>
+  </div>
+</section>
+
+<!-- ── INFO STRIP ── -->
+<div class="info-strip">
+  <div class="container info-strip-inner">
+    <div class="info-item"><span class="info-label">DATASET</span><span class="info-val">health_dataset_200k_real_countries.csv</span></div>
+    <div class="info-item"><span class="info-label">TARGET</span><span class="info-val">Insulin_Resistant (binary)</span></div>
+    <div class="info-item"><span class="info-label">MODEL</span><span class="info-val">XGBoost + GridSearchCV</span></div>
+    <div class="info-item"><span class="info-label">BALANCE</span><span class="info-val">SMOTE oversampling</span></div>
+  </div>
+</div>
+
+<!-- ── DATA SECTION ── -->
+<section class="section" id="data">
+  <div class="container">
+    <div class="section-tag">01 / DATA</div>
+    <h2 class="section-title">Dataset Overview</h2>
+    <p class="section-desc">
+      190,000 health records spanning 2005–2024 across 20 countries.
+      No missing values, no duplicates. Target class imbalance ~78% / 22% addressed with SMOTE.
+    </p>
+
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Feature</th><th>Type</th><th>Range / Values</th><th>Used in Model</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Country</td><td>categorical</td><td>20 countries</td><td class="yes">YES</td></tr>
+          <tr><td>Year</td><td>int</td><td>2005 – 2024</td><td class="yes">YES</td></tr>
+          <tr><td>Age</td><td>int</td><td>1 – 85</td><td class="yes">YES</td></tr>
+          <tr><td>Gender</td><td>categorical</td><td>Male / Female</td><td class="yes">YES</td></tr>
+          <tr><td>Age_Group</td><td>categorical</td><td>Child / Teen / Adult / Middle-Aged / Elderly</td><td class="yes">YES</td></tr>
+          <tr><td>HbA1c</td><td>float</td><td>1.4 – 11.82</td><td class="yes">YES</td></tr>
+          <tr><td>HDL</td><td>float</td><td>-5.54 – 90.66</td><td class="yes">YES</td></tr>
+          <tr><td>LDL</td><td>float</td><td>18.23 – 255.06</td><td class="yes">YES</td></tr>
+          <tr><td>TG</td><td>float</td><td>-66.28 – 410.05</td><td class="yes">YES</td></tr>
+          <tr><td>Heart_Risk</td><td>categorical</td><td>Low / Medium / High</td><td class="yes">YES</td></tr>
+          <tr><td>HOMA_IR</td><td>float</td><td>direct proxy</td><td class="no">EXCLUDED (leaky)</td></tr>
+          <tr><td>Fasting_Insulin</td><td>float</td><td>direct proxy</td><td class="no">EXCLUDED (leaky)</td></tr>
+          <tr><td>TG_HDL_Ratio</td><td>float</td><td>derived proxy</td><td class="no">EXCLUDED (leaky)</td></tr>
+          <tr><td>Diabetic</td><td>int</td><td>near-perfect proxy</td><td class="no">EXCLUDED (leaky)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ── PIPELINE SECTION ── -->
+<section class="section section-alt" id="pipeline">
+  <div class="container">
+    <div class="section-tag">02 / PIPELINE</div>
+    <h2 class="section-title">ML Pipeline</h2>
+    <p class="section-desc">End-to-end flow from raw CSV to tuned production model.</p>
+
+    <div class="pipeline-steps">
+      <div class="pipeline-step">
+        <div class="step-num">01</div>
+        <div class="step-body">
+          <div class="step-title">Load &amp; Inspect</div>
+          <div class="step-text">Read 190K rows, verify dtypes, check for nulls and duplicates. Confirmed clean dataset with no imputation needed.</div>
+        </div>
+      </div>
+      <div class="pipeline-arrow">▼</div>
+      <div class="pipeline-step">
+        <div class="step-num">02</div>
+        <div class="step-body">
+          <div class="step-title">Feature Engineering</div>
+          <div class="step-text">Label-encode Country, Gender, Age_Group, Heart_Risk. Drop 4 leaky features. Final feature set: 10 columns.</div>
+        </div>
+      </div>
+      <div class="pipeline-arrow">▼</div>
+      <div class="pipeline-step">
+        <div class="step-num">03</div>
+        <div class="step-body">
+          <div class="step-title">Train/Test Split</div>
+          <div class="step-text">80/20 stratified split. 152,000 train / 38,000 test. Stratification preserves class ratio.</div>
+        </div>
+      </div>
+      <div class="pipeline-arrow">▼</div>
+      <div class="pipeline-step">
+        <div class="step-num">04</div>
+        <div class="step-body">
+          <div class="step-title">StandardScaler</div>
+          <div class="step-text">Fit on training data only. Transform both train and test. Saved to scaler.pkl for inference.</div>
+        </div>
+      </div>
+      <div class="pipeline-arrow">▼</div>
+      <div class="pipeline-step">
+        <div class="step-num">05</div>
+        <div class="step-body">
+          <div class="step-title">SMOTE</div>
+          <div class="step-text">Synthetic Minority Oversampling on training set only. Balances 119K:32K → 119K:119K. Test set untouched.</div>
+        </div>
+      </div>
+      <div class="pipeline-arrow">▼</div>
+      <div class="pipeline-step">
+        <div class="step-num">06</div>
+        <div class="step-body">
+          <div class="step-title">GridSearchCV</div>
+          <div class="step-text">3-fold CV over 3,125 XGBoost parameter combinations. Scored by ROC-AUC. Best params saved for retraining.</div>
+        </div>
+      </div>
+      <div class="pipeline-arrow">▼</div>
+      <div class="pipeline-step">
+        <div class="step-num">07</div>
+        <div class="step-body">
+          <div class="step-title">Final Evaluation</div>
+          <div class="step-text">Retrain with best params on fresh split. Evaluate accuracy, precision, recall, F1, confusion matrix on held-out test set.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CHARTS SECTION ── -->
+<section class="section" id="charts">
+  <div class="container">
+    <div class="section-tag">03 / ANALYSIS</div>
+    <h2 class="section-title">Charts &amp; Analysis</h2>
+    <p class="section-desc">Click any chart to enlarge. All charts generated from actual model outputs.</p>
+
+    <div class="chart-tabs">
+      <button class="chart-tab active" data-tab="class">Class Distribution</button>
+      <button class="chart-tab" data-tab="features">Feature Means</button>
+      <button class="chart-tab" data-tab="corr">Correlations</button>
+      <button class="chart-tab" data-tab="cm">Confusion Matrix</button>
+    </div>
+
+    <div class="chart-panel active" id="tab-class">
+      <div class="chart-frame" id="chart-class">
+        <div class="chart-loading">Loading chart...</div>
+      </div>
+      <div class="chart-caption">
+        Dataset has 156,438 non-IR and 33,562 IR cases — a ~78/22 imbalance addressed with SMOTE during training.
+      </div>
+    </div>
+    <div class="chart-panel" id="tab-features">
+      <div class="chart-frame" id="chart-features">
+        <div class="chart-loading">Loading chart...</div>
+      </div>
+      <div class="chart-caption">
+        IR patients tend to be older with higher HbA1c and TG levels. HDL is slightly lower on average.
+      </div>
+    </div>
+    <div class="chart-panel" id="tab-corr">
+      <div class="chart-frame" id="chart-corr">
+        <div class="chart-loading">Loading chart...</div>
+      </div>
+      <div class="chart-caption">
+        HbA1c shows the strongest correlation with insulin resistance (r≈0.29). HDL has a mild negative correlation.
+      </div>
+    </div>
+    <div class="chart-panel" id="tab-cm">
+      <div class="chart-frame" id="chart-cm">
+        <div class="chart-loading">Loading chart...</div>
+      </div>
+      <div class="chart-caption">
+        Tuned XGBoost on 38,000 test samples. True Negatives: 29,420 | True Positives: 2,801 | FP: 1,798 | FN: 3,981.
+      </div>
+    </div>
+
+    <!-- metrics strip -->
+    <div class="metrics-strip">
+      <div class="metric-item">
+        <div class="metric-val">80.72%</div>
+        <div class="metric-label">Accuracy</div>
+      </div>
+      <div class="metric-item">
+        <div class="metric-val">86.93%</div>
+        <div class="metric-label">ROC-AUC (CV)</div>
+      </div>
+      <div class="metric-item">
+        <div class="metric-val">77.01%</div>
+        <div class="metric-label">F1 Score (CV)</div>
+      </div>
+      <div class="metric-item">
+        <div class="metric-val">3,125</div>
+        <div class="metric-label">Grid Combos</div>
+      </div>
+      <div class="metric-item">
+        <div class="metric-val">5-fold</div>
+        <div class="metric-label">CV Strategy</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CODE SECTION ── -->
+<section class="section section-alt" id="code">
+  <div class="container">
+    <div class="section-tag">04 / SOURCE</div>
+    <h2 class="section-title">Code Walkthrough</h2>
+    <p class="section-desc">Key snippets from the notebook. Each tab covers one stage of the pipeline.</p>
+
+    <div class="code-tabs">
+      <button class="code-tab active" data-ctab="preprocess">Preprocessing</button>
+      <button class="code-tab" data-ctab="smote">SMOTE</button>
+      <button class="code-tab" data-ctab="gridsearch">Grid Search</button>
+      <button class="code-tab" data-ctab="eval">Evaluation</button>
+    </div>
+
+    <div class="code-panel active" id="ctab-preprocess">
+<pre class="code-block"><span class="kw">from</span> sklearn.preprocessing <span class="kw">import</span> LabelEncoder
+
+ENCODE_COLS = [<span class="str">'Country'</span>, <span class="str">'Gender'</span>, <span class="str">'Age_Group'</span>, <span class="str">'Heart_Risk'</span>]
+label_encoders = {}
+
+<span class="kw">for</span> col <span class="kw">in</span> ENCODE_COLS:
+    le = LabelEncoder()
+    df_enc[col] = le.fit_transform(df_enc[col])
+    label_encoders[col] = le
+
+<span class="cm"># Remove leaky features that are near-perfect proxies</span>
+LEAKY = [<span class="str">'HOMA_IR'</span>, <span class="str">'Fasting_Insulin'</span>, <span class="str">'TG_HDL_Ratio'</span>, <span class="str">'Diabetic'</span>]
+X = df_enc.drop(columns=[<span class="str">'ID'</span>, <span class="str">'Insulin_Resistant'</span>] + LEAKY)
+y = df_enc[<span class="str">'Insulin_Resistant'</span>]
+
+<span class="cm"># 80/20 stratified split</span>
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=<span class="num">0.2</span>, random_state=<span class="num">42</span>, stratify=y
+)
+
+<span class="cm"># Fit scaler on train, transform both</span>
+scaler = StandardScaler()
+X_train_sc = scaler.fit_transform(X_train)
+X_test_sc  = scaler.transform(X_test)</pre>
+    </div>
+
+    <div class="code-panel" id="ctab-smote">
+<pre class="code-block"><span class="kw">from</span> imblearn.over_sampling <span class="kw">import</span> SMOTE
+
+smote = SMOTE(random_state=<span class="num">42</span>)
+X_train_sm, y_train_sm = smote.fit_resample(X_train_sc, y_train)
+
+<span class="cm"># Before SMOTE: {0: 119219, 1: 32781}</span>
+<span class="cm"># After  SMOTE: {0: 119219, 1: 119219}  ← balanced</span>
+
+<span class="cm"># SMOTE is applied ONLY on training data.</span>
+<span class="cm"># Test set is never touched — prevents data leakage.</span>
+print(<span class="str">f'Before: {dict(y_train.value_counts())}'</span>)
+print(<span class="str">f'After : {dict(pd.Series(y_train_sm).value_counts())}'</span>)</pre>
+    </div>
+
+    <div class="code-panel" id="ctab-gridsearch">
+<pre class="code-block"><span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> GridSearchCV
+
+param_grid = {
+    <span class="str">'n_estimators'</span>:     [<span class="num">100</span>, <span class="num">200</span>, <span class="num">300</span>, <span class="num">400</span>, <span class="num">500</span>],
+    <span class="str">'max_depth'</span>:        [<span class="num">3</span>, <span class="num">4</span>, <span class="num">6</span>, <span class="num">8</span>, <span class="num">10</span>],
+    <span class="str">'learning_rate'</span>:    [<span class="num">0.01</span>, <span class="num">0.05</span>, <span class="num">0.1</span>, <span class="num">0.2</span>, <span class="num">0.3</span>],
+    <span class="str">'subsample'</span>:        [<span class="num">0.6</span>, <span class="num">0.7</span>, <span class="num">0.8</span>, <span class="num">0.9</span>, <span class="num">1.0</span>],
+    <span class="str">'colsample_bytree'</span>: [<span class="num">0.6</span>, <span class="num">0.7</span>, <span class="num">0.8</span>, <span class="num">0.9</span>, <span class="num">1.0</span>],
+}  <span class="cm"># 5^5 = 3,125 combinations</span>
+
+gs = GridSearchCV(
+    estimator=XGBClassifier(eval_metric=<span class="str">'logloss'</span>, random_state=<span class="num">42</span>),
+    param_grid=param_grid,
+    scoring=<span class="str">'roc_auc'</span>,
+    cv=StratifiedKFold(n_splits=<span class="num">3</span>, shuffle=<span class="kw">True</span>, random_state=<span class="num">42</span>),
+    n_jobs=-<span class="num">1</span>,
+    verbose=<span class="num">2</span>,
+)
+gs.fit(X_train_sm, y_train_sm)
+print(<span class="str">f'Best ROC-AUC: {gs.best_score_:.4f}'</span>)
+print(gs.best_params_)</pre>
+    </div>
+
+    <div class="code-panel" id="ctab-eval">
+<pre class="code-block"><span class="kw">from</span> sklearn.metrics <span class="kw">import</span> (
+    accuracy_score, precision_score, recall_score,
+    f1_score, confusion_matrix, classification_report
+)
+
+y_pred = tuned_xgb.predict(X_test2_sc)
+
+acc  = accuracy_score(y_test2, y_pred)   <span class="cm"># 0.8072</span>
+prec = precision_score(y_test2, y_pred)  <span class="cm"># 0.6091</span>
+rec  = recall_score(y_test2, y_pred)     <span class="cm"># 0.4131</span>
+f1   = f1_score(y_test2, y_pred)         <span class="cm"># 0.4924</span>
+
+cm = confusion_matrix(y_test2, y_pred)
+<span class="cm"># [[29420,  1798],</span>
+<span class="cm">#  [ 3981,  2801]]</span>
+
+print(classification_report(
+    y_test2, y_pred,
+    target_names=[<span class="str">'No IR'</span>, <span class="str">'IR'</span>]
+))</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ── PREDICT SECTION ── -->
+<section class="section" id="predict">
+  <div class="container">
+    <div class="section-tag">05 / INFERENCE</div>
+    <h2 class="section-title">Live Prediction</h2>
+    <p class="section-desc">
+      Enter patient data below. The request is sent to the FastAPI backend which loads the
+      saved <code>final_model.pkl</code>, <code>scaler.pkl</code>, and <code>encoders.pkl</code> to return a prediction.
+    </p>
+
+    <div class="predict-layout">
+      <div class="predict-form-wrap">
+        <form id="predictForm" class="predict-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Country</label>
+              <select name="country" id="f_country" class="form-input"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Year</label>
+              <input type="number" name="year" id="f_year" class="form-input" value="2020" min="2005" max="2024" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Age</label>
+              <input type="number" name="age" id="f_age" class="form-input" value="45" min="1" max="85" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Gender</label>
+              <select name="gender" id="f_gender" class="form-input"></select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Age Group</label>
+              <select name="age_group" id="f_age_group" class="form-input"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Heart Risk</label>
+              <select name="heart_risk" id="f_heart_risk" class="form-input"></select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">HbA1c <span class="unit">(mmol/mol)</span></label>
+              <input type="number" name="hba1c" id="f_hba1c" class="form-input" value="6.5" step="0.01" min="1" max="15" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">HDL <span class="unit">(mg/dL)</span></label>
+              <input type="number" name="hdl" id="f_hdl" class="form-input" value="45" step="0.1" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">LDL <span class="unit">(mg/dL)</span></label>
+              <input type="number" name="ldl" id="f_ldl" class="form-input" value="130" step="0.1" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">TG <span class="unit">(mg/dL)</span></label>
+              <input type="number" name="tg" id="f_tg" class="form-input" value="150" step="0.1" />
+            </div>
+          </div>
+          <button type="submit" class="btn-primary btn-full" id="submitBtn">
+            Run Prediction
+          </button>
+        </form>
+      </div>
+
+      <div class="predict-result-wrap">
+        <div class="result-panel" id="resultPanel">
+          <div class="result-idle">
+            <div class="result-idle-icon">⬡</div>
+            <div class="result-idle-text">Fill in the form and submit to run inference against the trained XGBoost model.</div>
+          </div>
+        </div>
+        <div class="result-legend">
+          <div class="legend-item"><span class="legend-dot green"></span>Not Insulin Resistant — prediction = 0</div>
+          <div class="legend-item"><span class="legend-dot red"></span>Insulin Resistant — prediction = 1</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ── -->
+<footer class="footer">
+  <div class="container footer-inner">
+    <div class="footer-left">
+      <div class="footer-brand">IR_PREDICT</div>
+      <div class="footer-sub">XGBoost · GridSearchCV · SMOTE · FastAPI</div>
+    </div>
+    <div class="footer-right">
+      <div class="footer-meta">
+        <span class="info-label">DATASET</span>
+        <span>190,000 records · 20 countries · 2005–2024</span>
+      </div>
+      <div class="footer-meta">
+        <span class="info-label">STACK</span>
+        <span>Python · scikit-learn · XGBoost · imbalanced-learn · FastAPI</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- ── LIGHTBOX ── -->
+<div class="lightbox" id="lightbox">
+  <div class="lightbox-overlay" id="lbOverlay"></div>
+  <div class="lightbox-panel">
+    <button class="lightbox-close" id="lbClose">✕</button>
+    <img class="lightbox-img" id="lbImg" src="" alt="" />
+  </div>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
